@@ -35,4 +35,4 @@ grem.plot\_graph(g=gr)
 grem.spring\_layout(gr, 10, 300)
 grem.plot\_graph(g=gr)
 
-See also usage.ipynb
+See also doc/usage.ipynb
