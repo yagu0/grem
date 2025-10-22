@@ -1,0 +1,13 @@
+C standalone (core project)
+
+make debug|release
+
+The shared library is built in bin/ folder.
+Compile code using it with -L=lgrem
+
+make test
+
+The test executable is built in bin/ folder.
+Execute: ./bin/test_grem.exe
+
+( with export LD_LIBRARY_PATH=./bin:$LD_LIBRARY_PATH )

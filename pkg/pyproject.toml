@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "pybind11"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grem"
+version = "0.1"
+description = "Interface Python (RAII) pour les graphes C"
+authors = [{ name = "Benjamin Auder" }]
+requires-python = ">=3.8"
+dependencies = ["igraph", "pycairo"]
+
+[tool.setuptools]
+packages = ["grem"]
+package-dir = {"" = ".."}
+
+[tool.setuptools.package-data]
+grem = ["*.so"]
