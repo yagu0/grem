@@ -32,7 +32,7 @@ import grem
 gr = grem.make\_random\_graph(100, 0.2, 150) <br>
 grem.plot\_graph(g=gr)
 
-grem.spring\_layout(gr, 10, 300) <br>
+grem.spring\_layout(gr, 200, 300) <br>
 grem.plot\_graph(g=gr)
 
 See also doc/usage.ipynb
