@@ -96,6 +96,39 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
+// TODO
+grow_binary_tree()
+{
+  // realloc nodes if needed (+1) --> missing capacity ?
+}
+
+// TODO: need to output Graph + array of sizes left/right (a, b ?)
+// sizes updated when calling grow_binary_tree(Graph g, int** sizes, double width).
+// Used only for construction, but can be in graph.h ? Or no need.
+Graph make_random_binary_tree(int n, int** sizes, double width, int seed)
+{
+  Graph g;
+  if (seed >= 0)
+    srand(seed);
+  else
+    srand(time(NULL));
+  g->n = 1;
+  g->nodes = malloc(4 * sizeof(Node));
+  //for (int i = 0; i < n; i++) {
+    // TODO: next lines in one function; call for 0
+    g->nodes[0].id = i;
+    g->nodes[0].x = ((double) rand() / RAND_MAX) * width;
+    g->nodes[0].y = ((double) rand() / RAND_MAX) * width;
+    g->nodes[i].dx = g->nodes[i].dy = 0;
+    g->nodes[i].degree = 0;
+    g->nodes[i].capacity = 4; //arbitrary small 2^k
+    g->nodes[i].neighbors = malloc(g->nodes[i].capacity * sizeof(int));
+  //}
+  for (int i=1; i<n; i++) {
+    grow_binary_tree(g, sizes, with);
+  }
+}
+
 void write_graph(Graph g, char* path)
 {
   FILE* fptr = fopen(path, "w");
