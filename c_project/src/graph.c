@@ -30,7 +30,8 @@ void init_nodes(Graph* g, int n, double width, int seed)
 void tryRealloc(Graph* g, int i) {
   if (g->nodes[i].capacity <= g->nodes[i].degree) {
     int new_capacity = g->nodes[i].capacity *= 2;
-    g->nodes[i].neighbors = realloc(g->nodes[i].neighbors, new_capacity * sizeof(int));
+    g->nodes[i].neighbors =
+      realloc(g->nodes[i].neighbors, new_capacity * sizeof(int));
   }
 }
 
@@ -96,8 +97,14 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
-// TODO
-grow_binary_tree()
+// Assume that make_random_binary_tree was called before
+Graph grow_binary_tree(Graph g, int nb, double width)
+{
+
+}
+
+// Random binary tree following https://arxiv.org/pdf/2401.07891
+Graph make_random_binary_tree(int n, double width, int seed)
 {
   // realloc nodes if needed (+1) --> missing capacity ?
 }
