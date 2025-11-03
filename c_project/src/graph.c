@@ -27,7 +27,8 @@ void init_nodes(Graph* g, int n, double width, int seed)
 }
 
 // Reallocate space for an overflowed vector
-void tryRealloc(Graph* g, int i) {
+void tryRealloc(Graph* g, int i)
+{
   if (g->nodes[i].capacity <= g->nodes[i].degree) {
     int new_capacity = g->nodes[i].capacity *= 2;
     g->nodes[i].neighbors =
