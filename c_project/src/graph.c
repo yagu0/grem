@@ -4,49 +4,62 @@
 #include <math.h>
 #include <time.h>
 
-// Initialize a graph with only nodes (no edges)
-void init_nodes(Graph* g, int n, double width, int seed)
+#define EPSILON 0.0000001
+
+void init_rand_gen(int seed)
 {
   if (seed >= 0)
     srand(seed);
   else
     srand(time(NULL));
-  g->n = n;
-  g->nodes = malloc(n * sizeof(Node));
-
-  // Positions aléatoires initiales
-  for (int i = 0; i < n; i++) {
-    g->nodes[i].id = i;
-    g->nodes[i].x = ((double) rand() / RAND_MAX) * width;
-    g->nodes[i].y = ((double) rand() / RAND_MAX) * width;
-    g->nodes[i].dx = g->nodes[i].dy = 0;
-    g->nodes[i].degree = 0;
-    g->nodes[i].capacity = 4; //arbitrary small 2^k
-    g->nodes[i].neighbors = malloc(g->nodes[i].capacity * sizeof(int));
-  }
 }
 
 // Reallocate space for an overflowed vector
-void tryRealloc(Graph* g, int i)
+void tryRealloc(int** v, int size, int nb)
 {
-  if (g->nodes[i].capacity <= g->nodes[i].degree) {
-    int new_capacity = g->nodes[i].capacity *= 2;
-    g->nodes[i].neighbors =
-      realloc(g->nodes[i].neighbors, new_capacity * sizeof(int));
+  // Test if current size is a power of 2 (== max capacity reached)
+  if (size >= 1 && log2(size) % 1 < EPSILON) {
+    int total = size + nb;
+    while (size < total)
+      size << 1;
+    *v = realloc(*v, size * sizeof(int));
   }
 }
+
+// Initialize a graph with only nodes (no edges)
+void re_init_nodes(Graph* g, int n, double width)
+{
+  if (g->n == 0)
+    g->nodes = malloc(n * sizeof(Node));
+  else
+    tryRealloc(&g->nodes, g->n, n);
+
+  // Positions aléatoires initiales
+  for (int i = 0; i < n; i++) {
+    g->nodes[g->n + i].id = i;
+    g->nodes[g->n + i].x = ((double) rand() / RAND_MAX) * width;
+    g->nodes[g->n + i].y = ((double) rand() / RAND_MAX) * width;
+    g->nodes[g->n + i].dx = g->nodes[i].dy = 0;
+    g->nodes[g->n + i].degree = 0;
+    g->nodes[g->n + i].neighbors = malloc(sizeof(int));
+  }
+  g->n = n;
+}
+
 
 // Crée un graphe aléatoire G(n,p) avec positions initiales aléatoires
 Graph make_random_graph(int n, double p, double width, int seed)
 {
+  init_rand_gen(seed);
   Graph g;
-  init_nodes(&g, n, width, seed);
+  g.n = 0;
+  re_init_nodes(&g, n, width, seed);
 
   for (int i = 0; i < n; i++) {
     for (int j = i+1; j < n; j++) {
       if (((double) rand() / RAND_MAX) < p) {
-        tryRealloc(&g, i);
-        tryRealloc(&g, j);
+        tryRealloc(&g->nodes[i].neighbors, g->nodes[i].degree, 1);
+        tryRealloc(&g->nodes[j].neighbors, g->nodes[j].degree, 1);
         g.nodes[i].neighbors[g.nodes[i].degree] = j;
         g.nodes[j].neighbors[g.nodes[j].degree] = i;
         g.nodes[i].degree++;
@@ -61,7 +74,9 @@ Graph make_random_graph(int n, double p, double width, int seed)
 // Crée un arbre aléatoire T(n) au hasard, ou preferential attachment
 Graph make_random_tree(int n, int mode, double width, int seed)
 {
+  init_rand_gen(seed);
   Graph g;
+  g.n = 0;
   init_nodes(&g, n, width, seed);
 
   for (int i = 1; i < n; i++) {
@@ -87,8 +102,8 @@ Graph make_random_tree(int n, int mode, double width, int seed)
         }
       }
     }
-    tryRealloc(&g, i);
-    tryRealloc(&g, M);
+    tryRealloc(g.nodes[i].neighbors, g.nodes[i].degree, 1);
+    tryRealloc(g.nodes[M].neighbors, g.nodes[M].degree, 1);
     g.nodes[i].neighbors[g.nodes[i].degree] = M;
     g.nodes[M].neighbors[g.nodes[M].degree] = i;
     g.nodes[i].degree++;
@@ -98,43 +113,24 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
-// Assume that make_random_binary_tree was called before
-Graph grow_binary_tree(Graph g, int nb, double width)
+// Assume that g is an output of make_random_binary_tree() below
+void grow_binary_tree(Graph g, double width)
 {
-
+  // TODO: grow one cherry from root (index 0). Update g.sizes
+  // g.nodes[n]...
+  // Convention: except at root, neighbors[0] = parent,
+  // neighbors[1, 2] if present = children.
 }
 
-// Random binary tree following https://arxiv.org/pdf/2401.07891
 Graph make_random_binary_tree(int n, double width, int seed)
 {
-  // realloc nodes if needed (+1) --> missing capacity ?
-}
-
-// TODO: need to output Graph + array of sizes left/right (a, b ?)
-// sizes updated when calling grow_binary_tree(Graph g, int** sizes, double width).
-// Used only for construction, but can be in graph.h ? Or no need.
-Graph make_random_binary_tree(int n, int** sizes, double width, int seed)
-{
+  // TODO: init g.sizes ?
+  init_rand_gen(seed);
   Graph g;
-  if (seed >= 0)
-    srand(seed);
-  else
-    srand(time(NULL));
-  g->n = 1;
-  g->nodes = malloc(4 * sizeof(Node));
-  //for (int i = 0; i < n; i++) {
-    // TODO: next lines in one function; call for 0
-    g->nodes[0].id = i;
-    g->nodes[0].x = ((double) rand() / RAND_MAX) * width;
-    g->nodes[0].y = ((double) rand() / RAND_MAX) * width;
-    g->nodes[i].dx = g->nodes[i].dy = 0;
-    g->nodes[i].degree = 0;
-    g->nodes[i].capacity = 4; //arbitrary small 2^k
-    g->nodes[i].neighbors = malloc(g->nodes[i].capacity * sizeof(int));
-  //}
-  for (int i=1; i<n; i++) {
-    grow_binary_tree(g, sizes, with);
-  }
+  re_init_nodes(g, 1, width);
+  for (int i=1; i<n; i++)
+    grow_binary_tree(g, width);
+  return g;
 }
 
 void write_graph(Graph g, char* path)
@@ -173,8 +169,7 @@ Graph read_graph(char* path)
     nd->id = i;
     nd->dx = nd->dy = 0.0;
     nd->degree = 0;
-    nd->capacity = 4; // capacité initiale arbitraire
-    nd->neighbors = (int*)malloc(nd->capacity * sizeof(int));
+    nd->neighbors = (int*)malloc(sizeof(int));
     fscanf(f, "%lf %lf", &nd->x, &nd->y); //==2
   }
 
@@ -186,16 +181,8 @@ Graph read_graph(char* path)
     // Ajoute les voisins symétriquement (graphe non orienté)
     Node* nu = &g.nodes[u];
     Node* nv = &g.nodes[v];
-
-    if (nu->degree >= nu->capacity) {
-      nu->capacity *= 2;
-      nu->neighbors = (int*)realloc(nu->neighbors, nu->capacity * sizeof(int));
-    }
-    if (nv->degree >= nv->capacity) {
-      nv->capacity *= 2;
-      nv->neighbors = (int*)realloc(nv->neighbors, nv->capacity * sizeof(int));
-    }
-
+    tryRealloc(&nu->neighbors, nu->degree, 1);
+    tryRealloc(&nv->neighbors, nv->degree, 1);
     nu->neighbors[nu->degree++] = v;
     nv->neighbors[nv->degree++] = u;
   }

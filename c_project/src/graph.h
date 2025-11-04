@@ -6,13 +6,13 @@ typedef struct Node {
   double x, y;
   double dx, dy;
   int degree;
-  int capacity;
   int* neighbors;
 } Node;
 
 typedef struct Graph {
   int n;
   Node* nodes;
+  int* sizes; //for binary trees only
 } Graph;
 
 // Build Erdos-Renyi graph
@@ -22,6 +22,9 @@ enum {RND=0, PA};
 
 // Build random tree, at random or preferential attachment
 Graph make_random_tree(int n, int mode, double width, int seed);
+
+// Random binary tree following https://arxiv.org/pdf/2401.07891
+Graph make_random_binary_tree(int n, double width, int seed);
 
 // Read/write functions (from/to file)
 void write_graph(Graph g, char* path);

@@ -50,7 +50,8 @@ static py::list graph_to_list(const Graph& g) {
 // A "deleter" for std::shared_ptr<Graph> which call free_graph()
 struct GraphDeleter {
   void operator()(Graph* g) const noexcept {
-    if (g) free_graph(*g);
+    if (g)
+      free_graph(*g);
   }
 };
 
