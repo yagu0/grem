@@ -7,12 +7,13 @@ typedef struct Node {
   double dx, dy;
   int degree;
   int* neighbors;
+  int size; //for binary trees only
+  int* childs; //for binary tree only
 } Node;
 
 typedef struct Graph {
   int n;
   Node* nodes;
-  int* sizes; //for binary trees only
 } Graph;
 
 // Build Erdos-Renyi graph

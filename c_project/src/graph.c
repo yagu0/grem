@@ -15,14 +15,15 @@ void init_rand_gen(int seed)
 }
 
 // Reallocate space for an overflowed vector
-void tryRealloc(int** v, int size, int nb)
+void tryRealloc(void** v, int cell_size, int size, int nb)
 {
   // Test if current size is a power of 2 (== max capacity reached)
-  if (size >= 1 && log2(size) % 1 < EPSILON) {
+  double l2size = log2(size);
+  if (size >= 1 && fabs(l2size - round(l2size)) < EPSILON) {
     int total = size + nb;
     while (size < total)
-      size << 1;
-    *v = realloc(*v, size * sizeof(int));
+      size <<= 1;
+    *v = realloc(*v, size * cell_size);
   }
 }
 
@@ -32,7 +33,7 @@ void re_init_nodes(Graph* g, int n, double width)
   if (g->n == 0)
     g->nodes = malloc(n * sizeof(Node));
   else
-    tryRealloc(&g->nodes, g->n, n);
+    tryRealloc((void**)&g->nodes, sizeof(Node), g->n, n);
 
   // Positions aléatoires initiales
   for (int i = 0; i < n; i++) {
@@ -43,7 +44,7 @@ void re_init_nodes(Graph* g, int n, double width)
     g->nodes[g->n + i].degree = 0;
     g->nodes[g->n + i].neighbors = malloc(sizeof(int));
   }
-  g->n = n;
+  g->n += n;
 }
 
 
@@ -53,13 +54,15 @@ Graph make_random_graph(int n, double p, double width, int seed)
   init_rand_gen(seed);
   Graph g;
   g.n = 0;
-  re_init_nodes(&g, n, width, seed);
+  re_init_nodes(&g, n, width);
 
   for (int i = 0; i < n; i++) {
     for (int j = i+1; j < n; j++) {
       if (((double) rand() / RAND_MAX) < p) {
-        tryRealloc(&g->nodes[i].neighbors, g->nodes[i].degree, 1);
-        tryRealloc(&g->nodes[j].neighbors, g->nodes[j].degree, 1);
+        tryRealloc((void**)&g.nodes[i].neighbors, sizeof(int),
+                   g.nodes[i].degree, 1);
+        tryRealloc((void**)&g.nodes[j].neighbors, sizeof(int),
+                   g.nodes[j].degree, 1);
         g.nodes[i].neighbors[g.nodes[i].degree] = j;
         g.nodes[j].neighbors[g.nodes[j].degree] = i;
         g.nodes[i].degree++;
@@ -77,7 +80,7 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   init_rand_gen(seed);
   Graph g;
   g.n = 0;
-  init_nodes(&g, n, width, seed);
+  re_init_nodes(&g, n, width);
 
   for (int i = 1; i < n; i++) {
     int M = 0;
@@ -102,8 +105,10 @@ Graph make_random_tree(int n, int mode, double width, int seed)
         }
       }
     }
-    tryRealloc(g.nodes[i].neighbors, g.nodes[i].degree, 1);
-    tryRealloc(g.nodes[M].neighbors, g.nodes[M].degree, 1);
+    tryRealloc((void**)g.nodes[i].neighbors, sizeof(int),
+               g.nodes[i].degree, 1);
+    tryRealloc((void**)g.nodes[M].neighbors, sizeof(int),
+               g.nodes[M].degree, 1);
     g.nodes[i].neighbors[g.nodes[i].degree] = M;
     g.nodes[M].neighbors[g.nodes[M].degree] = i;
     g.nodes[i].degree++;
@@ -116,18 +121,35 @@ Graph make_random_tree(int n, int mode, double width, int seed)
 // Assume that g is an output of make_random_binary_tree() below
 void grow_binary_tree(Graph g, double width)
 {
-  // TODO: grow one cherry from root (index 0). Update g.sizes
-  // g.nodes[n]...
-  // Convention: except at root, neighbors[0] = parent,
-  // neighbors[1, 2] if present = children.
+  int i = 0;
+  while (g.nodes[i].childs != NULL) {
+    g.nodes[i].size++; //augment sizes on the path
+    int a_idx = g.nodes[i].childs[0],
+        b_idx = g.nodes[i].childs[1];
+    int a = g.nodes[a_idx].size,
+        b = g.nodes[b_idx].size;
+    double Cab = ( (a + 1) * (2*a + 1) * (a + 3*b + 3) ) /
+      ( (a + b + 1) * (a + b + 2) * (2 * (a + b) + 3) );
+    double lr = (double)rand() / RAND_MAX;
+    i = (lr < Cab ? a_idx : b_idx);
+  }
+  // Grow one cherry from current leaf.
+  re_init_nodes(&g, 2, width);
+  g.nodes[i].childs = malloc(2 * sizeof(int));
+  for (int j = 0; j < 2; j++) {
+    g.nodes[i].childs[j] = g.n - 2 + j;
+    g.nodes[g.n - j].size = 0;
+    g.nodes[g.n - j].childs = NULL;
+  }
 }
 
 Graph make_random_binary_tree(int n, double width, int seed)
 {
-  // TODO: init g.sizes ?
   init_rand_gen(seed);
   Graph g;
-  re_init_nodes(g, 1, width);
+  re_init_nodes(&g, 1, width);
+  g.nodes[0].size = 0;
+  g.nodes[0].childs = NULL;
   for (int i=1; i<n; i++)
     grow_binary_tree(g, width);
   return g;
@@ -181,8 +203,8 @@ Graph read_graph(char* path)
     // Ajoute les voisins symétriquement (graphe non orienté)
     Node* nu = &g.nodes[u];
     Node* nv = &g.nodes[v];
-    tryRealloc(&nu->neighbors, nu->degree, 1);
-    tryRealloc(&nv->neighbors, nv->degree, 1);
+    tryRealloc((void**)&nu->neighbors, sizeof(int), nu->degree, 1);
+    tryRealloc((void**)&nv->neighbors, sizeof(int), nv->degree, 1);
     nu->neighbors[nu->degree++] = v;
     nv->neighbors[nv->degree++] = u;
   }
