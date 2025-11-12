@@ -8,7 +8,6 @@ typedef struct Node {
   int degree;
   int* neighbors;
   int size; //for binary trees only
-  int* childs; //for binary tree only
 } Node;
 
 typedef struct Graph {
