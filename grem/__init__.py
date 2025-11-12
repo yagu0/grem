@@ -50,6 +50,27 @@ def make_random_tree(n, mode, width, seed = -1):
     """
     return _native.make_random_tree(n, mode, width, seed)
 
+def make_random_binary_tree(n, width, seed = -1):
+    """
+    make_random_binary_tree(n: int, width: float, seed: int = -1) -> Graph
+    Build a random (uniform) binary tree.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes.
+    size : float
+        Width of the square area.
+    seed : int
+        Random if unspecified or < 0.
+
+    Returns
+    -------
+    Graph
+        The generated graph object.
+    """
+    return _native.make_random_binary_tree(n, width, seed)
+
 def spring_layout(g, max_iter, width):
     """
     spring_layout(g: Graph, max_iter: int, width: float) -> None
@@ -83,6 +104,7 @@ __all__ = [
     "Node",
     "make_random_graph",
     "make_random_tree",
+    "make_random_binary_tree",
     "spring_layout",
     "plot_graph",
 ]

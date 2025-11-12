@@ -4,7 +4,7 @@
 #include <math.h>
 #include <time.h>
 
-#define EPSILON 0.0000001
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 void init_rand_gen(int seed)
 {
@@ -17,13 +17,11 @@ void init_rand_gen(int seed)
 // Reallocate space for an overflowed vector
 void tryRealloc(void** v, int cell_size, int size, int nb)
 {
-  // Test if current size is a power of 2 (== max capacity reached)
-  double l2size = log2(size);
-  if (size >= 1 && fabs(l2size - round(l2size)) < EPSILON) {
-    int total = size + nb;
-    while (size < total)
-      size <<= 1;
-    *v = realloc(*v, size * cell_size);
+  // Capacity = closest power of 2 above current size
+  int capacity = 1 << (int)ceil(log2(MAX(size, 1)));
+  if (size + nb > capacity) {
+    int new_capacity = 1 << (int)ceil(log2(MAX(size + nb, 1)));
+    *v = realloc(*v, new_capacity * cell_size);
   }
 }
 
@@ -147,6 +145,7 @@ Graph make_random_binary_tree(int n, double width, int seed)
 {
   init_rand_gen(seed);
   Graph g;
+  g.n = 0;
   re_init_nodes(&g, 1, width);
   g.nodes[0].size = 0;
   g.nodes[0].childs = NULL;
