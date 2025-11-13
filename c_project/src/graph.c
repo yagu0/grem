@@ -28,18 +28,16 @@ void tryRealloc(void** v, int cell_size, int size, int nb)
 // Initialize a graph with only nodes (no edges)
 void re_init_nodes(Graph* g, int n, double width)
 {
-  if (g->n > 0)
-    tryRealloc((void**)&g->nodes, sizeof(Node), g->n, n);
-
+  tryRealloc((void**)&g->nodes, sizeof(Node), g->n, n);
   // Positions aléatoires initiales
-  for (int i = 0; i < n; i++) {
-    g->nodes[g->n + i].id = i;
-    g->nodes[g->n + i].x = ((double) rand() / RAND_MAX) * width;
-    g->nodes[g->n + i].y = ((double) rand() / RAND_MAX) * width;
-    g->nodes[g->n + i].dx = g->nodes[g->n + i].dy = 0;
-    g->nodes[g->n + i].degree = 0;
-    g->nodes[g->n + i].neighbors = NULL;
-    g->nodes[g->n + i].size = 0;
+  for (int i = g->n; i < g->n + n; i++) {
+    g->nodes[i].id = i;
+    g->nodes[i].x = ((double) rand() / RAND_MAX) * width;
+    g->nodes[i].y = ((double) rand() / RAND_MAX) * width;
+    g->nodes[i].dx = g->nodes[i].dy = 0;
+    g->nodes[i].degree = 0;
+    g->nodes[i].neighbors = NULL;
+    g->nodes[i].size = 0;
   }
   g->n += n;
 }
@@ -49,9 +47,9 @@ Graph make_random_graph(int n, double p, double width, int seed)
 {
   init_rand_gen(seed);
   Graph g;
+  g.nodes = NULL;
   g.n = 0;
   re_init_nodes(&g, n, width);
-
   for (int i = 0; i < n; i++) {
     for (int j = i+1; j < n; j++) {
       if (((double) rand() / RAND_MAX) < p) {
@@ -75,9 +73,9 @@ Graph make_random_tree(int n, int mode, double width, int seed)
 {
   init_rand_gen(seed);
   Graph g;
+  g.nodes = NULL;
   g.n = 0;
   re_init_nodes(&g, n, width);
-
   for (int i = 1; i < n; i++) {
     int M = 0;
     // tirer au hasard M dans [0, i-1] : rattacher i à M, continuer
@@ -101,19 +99,15 @@ Graph make_random_tree(int n, int mode, double width, int seed)
         }
       }
     }
-    tryRealloc((void**)g.nodes[i].neighbors, sizeof(int),
+    tryRealloc((void**)&g.nodes[i].neighbors, sizeof(int),
                g.nodes[i].degree, 1);
-
-printf("%i %i %p\n", M, g.nodes[M].degree, g.nodes[M].neighbors);
-
-    tryRealloc((void**)g.nodes[M].neighbors, sizeof(int),
+    tryRealloc((void**)&g.nodes[M].neighbors, sizeof(int),
                g.nodes[M].degree, 1);
     g.nodes[i].neighbors[g.nodes[i].degree] = M;
     g.nodes[M].neighbors[g.nodes[M].degree] = i;
     g.nodes[i].degree++;
     g.nodes[M].degree++;
   }
-
   return g;
 }
 
@@ -135,10 +129,12 @@ void grow_binary_tree(Graph* g, double width)
   // Grow one cherry from current leaf.
   int old_n = g->n;
   re_init_nodes(g, 2, width);
-  tryRealloc((void**)g->nodes[i].neighbors, sizeof(int), g->nodes[i].degree, 2);
+  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
+             g->nodes[i].degree, 2);
   for (int j = 0; j < 2; j++) {
     g->nodes[i].neighbors[g->nodes[i].degree + j] = old_n + j;
     g->nodes[old_n + j].degree = 1;
+    g->nodes[old_n + j].neighbors = malloc(sizeof(int));
     g->nodes[old_n + j].neighbors[0] = i;
   }
   g->nodes[i].degree += 2;
@@ -148,6 +144,7 @@ Graph make_random_binary_tree(int n, double width, int seed)
 {
   init_rand_gen(seed);
   Graph g;
+  g.nodes = NULL;
   g.n = 0;
   re_init_nodes(&g, 1, width);
   for (int i=1; i<n; i++)
@@ -177,14 +174,11 @@ void write_graph(Graph g, char* path)
 Graph read_graph(char* path)
 {
   FILE* f = fopen(path, "r");
-
   int n, m;
   fscanf(f, "%d %d", &n, &m); //==2
-
   Graph g;
   g.n = n;
   g.nodes = (Node*)calloc(n, sizeof(Node));
-
   // Lecture des coordonnées
   for (int i = 0; i < n; i++) {
     Node* nd = &g.nodes[i];
@@ -194,12 +188,10 @@ Graph read_graph(char* path)
     nd->neighbors = NULL;
     fscanf(f, "%lf %lf", &nd->x, &nd->y); //==2
   }
-
   // Lecture des arêtes
   for (int j = 0; j < m; j++) {
     int u, v;
     fscanf(f, "%d %d", &u, &v); //==2
-
     // Ajoute les voisins symétriquement (graphe non orienté)
     Node* nu = &g.nodes[u];
     Node* nv = &g.nodes[v];
@@ -208,7 +200,6 @@ Graph read_graph(char* path)
     nu->neighbors[nu->degree++] = v;
     nv->neighbors[nv->degree++] = u;
   }
-
   fclose(f);
   return g;
 }
