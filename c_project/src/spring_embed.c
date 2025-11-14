@@ -43,29 +43,30 @@ void insert_quadtree(QuadTree* qt, Node* p)
   int dir = 0;
   for (int i=-1; i<=1; i+=2) {
     for (int j=-1; j<=1; j+=2) {
-      if (qt->subtree[dir] == NULL) {
-        qt->subtree[dir] =
-          new_quadtree(qt->cx + i * half, qt->cy + j * half, hs);
+      double cx = qt->cx + i * half, cy = qt->cy + j * half;
+      if (qt->node != NULL) {
+        double nx = qt->node->x, ny = qt->node->y;
+        if (
+          nx >= cx - half && nx < cx + half &&
+          ny >= cy - half && ny < cy + half
+        ) {
+          if (qt->subtree[dir] == NULL)
+            qt->subtree[dir] = new_quadtree(cx, cy, hs);
+          insert_quadtree(qt->subtree[dir], qt->node);
+          qt->node = NULL;
+        }
       }
-      if (
-        qt->node != NULL &&
-        qt->node->x >= qt->subtree[dir]->cx - half &&
-        qt->node->x < qt->subtree[dir]->cx + half &&
-        qt->node->y >= qt->subtree[dir]->cy - half &&
-        qt->node->y < qt->subtree[dir]->cy + half
-      ) {
-        insert_quadtree(qt->subtree[dir], qt->node);
-        qt->node = NULL;
-      }
-      if (
-        p != NULL &&
-        p->x >= qt->subtree[dir]->cx - half &&
-        p->x < qt->subtree[dir]->cx + half &&
-        p->y >= qt->subtree[dir]->cy - half &&
-        p->y < qt->subtree[dir]->cy + half
-      ) {
-        insert_quadtree(qt->subtree[dir], p);
-        p = NULL;
+      if (p != NULL) {
+        double px = p->x, py = p->y;
+        if (
+          px >= cx - half && px < cx + half &&
+          py >= cy - half && py < cy + half
+        ) {
+          if (qt->subtree[dir] == NULL)
+            qt->subtree[dir] = new_quadtree(cx, cy, hs);
+          insert_quadtree(qt->subtree[dir], p);
+          p = NULL;
+        }
       }
       dir++;
     }
@@ -86,10 +87,10 @@ void compute_force(Node* target, QuadTree* qt, double theta, double k, int* topo
     if (qt->node != NULL) {
       topo_dist = topo_dist_row[qt->node->id];
       if (topo_dist <= 0)
-        topo_dist = 1; // éviter division par 0
+        topo_dist = 1; //éviter division par 0
     }
 
-    double factor = 1.0 / pow(topo_dist, d); // topological modulation
+    double factor = 1.0 / pow(topo_dist, d); //topological modulation
     double f = k*k*qt->mass * factor / dist;
 
     target->dx -= dx/dist * f;
@@ -128,18 +129,18 @@ void spring_layout(Graph* g, int max_iter, double width)
     for (int i=0; i < g->n; i++)
       g->nodes[i].dx = g->nodes[i].dy = 0;
 
-    // construire le quadtree
+    // Construire le quadtree
     QuadTree* qt = new_quadtree(width/2, width/2, width);
 
     for (int i=0; i < g->n; i++)
       insert_quadtree(qt, &g->nodes[i]);
 
-    // forces répulsives via Barnes-Hut
-    int d = 2; // exposant pour la pondération topologique
+    // Forces répulsives via Barnes-Hut
+    int d = 2; //exposant pour la pondération topologique
     for (int i = 0; i < g->n; i++)
       compute_force(&g->nodes[i], qt, THETA, k, graph_dist[i], d);
 
-    // forces attractives (classiques)
+    // Forces attractives (classiques)
     for (int i = 0; i < g->n; i++) {
       for (int j = 0; j < g->nodes[i].degree; j++) {
         Node* u = &g->nodes[i];
@@ -161,12 +162,12 @@ void spring_layout(Graph* g, int max_iter, double width)
       double gy = cy - g->nodes[i].y;
       double g_dist = sqrt(gx*gx + gy*gy) + 1e-4;
 
-      double grav_strength = 0.01; // ajustable
+      double grav_strength = 0.01; //ajustable
       g->nodes[i].dx += gx/g_dist * grav_strength * g_dist;
       g->nodes[i].dy += gy/g_dist * grav_strength * g_dist;
     }
 
-    // appliquer déplacements
+    // Appliquer déplacements
     for (int i=0; i < g->n; i++) {
       double dx = g->nodes[i].dx,
              dy = g->nodes[i].dy;
