@@ -13,6 +13,6 @@ typedef struct QuadTree {
 } QuadTree;
 
 // Fonction principale
-void spring_layout(Graph* g, int max_iter, double width);
+void spring_layout(Graph* g, int max_iter, int d, double grav_strength);
 
 #endif

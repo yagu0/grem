@@ -71,26 +71,28 @@ def make_random_binary_tree(n, width, seed = -1):
     """
     return _native.make_random_binary_tree(n, width, seed)
 
-def spring_layout(g, max_iter, width):
+def spring_layout(g, max_iter, d = 2, grav_strength = 0.01):
     """
-    spring_layout(g: Graph, max_iter: int, width: float) -> None
+    spring_layout(g: Graph, max_iter: int, d: int, grav_strength: float) -> None
     Rearrange the positions of nodes in the graph based on attractive and
     repulsive forces applied on nodes through edges.
 
     Parameters
     ----------
     g : Graph
-      Graph object (output of make_random_graph() for example).
+        Graph object (output of make_random_graph() for example).
     max_iter : int
-      Maximum number of iterations.
-    width : float
-      Width of the square area.
+        Maximum number of iterations.
+    d : int
+        Exponent for topological modulation. Default to 2
+    grav_strength : float
+        Gravity strength. Default to 0.01
 
     Returns
     -------
     None
     """
-    _native.spring_layout(g, max_iter, width)
+    _native.spring_layout(g, max_iter, d, grav_strength)
 
 from ._native import (
     Graph,

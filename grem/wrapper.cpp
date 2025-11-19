@@ -165,8 +165,8 @@ PYBIND11_MODULE(_native, m) {
   // Spring layout
   m.def(
     "spring_layout",
-    [](std::shared_ptr<Graph> g, int max_iter, double width) {
-      spring_layout(g.get(), max_iter, width);
+    [](std::shared_ptr<Graph> g, int max_iter, int d, double grav_strength) {
+      spring_layout(g.get(), max_iter, d, grav_strength);
     },
-    py::arg("graph"), py::arg("max_iter"), py::arg("width"));
+    py::arg("graph"), py::arg("max_iter"), py::arg("d") = 2, py::arg("grav_strength") = 0.01);
 }

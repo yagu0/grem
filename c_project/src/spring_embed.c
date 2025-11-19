@@ -73,6 +73,7 @@ void insert_quadtree(QuadTree* qt, Node* p)
   }
 }
 
+// Compute repulsive forces (k^2 / dist)
 void compute_force(Node* target, QuadTree* qt, double theta,
                    double k, int* topo_dist_row, int d)
 {
@@ -85,7 +86,7 @@ void compute_force(Node* target, QuadTree* qt, double theta,
 
   if ((qt->size / dist) < theta || qt->node != NULL) {
     // Topological modulation (only if node != NULL)
-    int topo_dist = 1; //(qt->node != NULL ? topo_dist_row[qt->node->id] : 1);
+    int topo_dist = (qt->node != NULL ? topo_dist_row[qt->node->id] : 1);
     double factor = 1.0 / pow(topo_dist, d);
     double f = k*k*qt->mass * factor / dist;
     target->dx += - dx/dist * f;
@@ -106,12 +107,8 @@ void free_quadtree(QuadTree* qt)
   free(qt);
 }
 
-void spring_layout(Graph* g, int max_iter, double width)
+void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
 {
-  double area = width * width;
-  double k = sqrt(area / g->n);
-  double t = width / 10.0;
-
   // Pre-compute all graph distances
   int** graph_dist = malloc(g->n * sizeof(int*));
   for (int i = 0; i < g->n; i++) {
@@ -119,19 +116,43 @@ void spring_layout(Graph* g, int max_iter, double width)
     bfs(g, i, graph_dist[i]);
   }
 
+  double t = -1.0; //will be set later
+
   for (int iter=0; iter < max_iter; iter++) {
     double maxDelta = 0.0;
     for (int i=0; i < g->n; i++)
       g->nodes[i].dx = g->nodes[i].dy = 0;
 
-    // Construire le quadtree
-    QuadTree* qt = new_quadtree(width/2, width/2, width);
+    // Adjust bounding box (ChatGPT)
+    double minx = +INFINITY, maxx = -INFINITY,
+           miny = +INFINITY, maxy = -INFINITY;
+    for (int i = 0; i < g->n; i++) {
+      if (g->nodes[i].x < minx)
+        minx = g->nodes[i].x;
+      if (g->nodes[i].x > maxx)
+        maxx = g->nodes[i].x;
+      if (g->nodes[i].y < miny)
+        miny = g->nodes[i].y;
+      if (g->nodes[i].y > maxy)
+        maxy = g->nodes[i].y;
+    }
+    double deltax = maxx - minx,
+           deltay = maxy - miny;
+    double width = fmax(deltax, deltay);
+    double margin = width * 0.05; // 5%
+    minx -= margin;
+    miny -= margin;
+    width += 2 * margin;
+    double centerx = (minx + maxx) / 2.0;
+    double centery = (miny + maxy) / 2.0;
 
+    // Construire le quadtree
+    QuadTree* qt = new_quadtree(centerx, centery, width);
     for (int i=0; i < g->n; i++)
       insert_quadtree(qt, &g->nodes[i]);
 
     // Forces répulsives via Barnes-Hut
-    int d = 2; //exposant pour la pondération topologique (TODO?)
+    double k = width / sqrt(g->n);
     for (int i = 0; i < g->n; i++)
       compute_force(&g->nodes[i], qt, THETA, k, graph_dist[i], d);
 
@@ -142,27 +163,24 @@ void spring_layout(Graph* g, int max_iter, double width)
         Node* v = &g->nodes[g->nodes[i].neighbors[j]];
         double dx = v->x - u->x;
         double dy = v->y - u->y;
-        double dist = sqrt(dx*dx + dy*dy) + 1e-4;
-        double f = dist*dist/k;
+        double dist = sqrt(dx*dx + dy*dy);
+        double f = dist*dist / k;
         u->dx += dx/dist*f; u->dy += dy/dist*f;
         v->dx -= dx/dist*f; v->dy -= dy/dist*f;
       }
     }
 
     // Gravité vers le centre
-    double grav_strength = 0.01; //ajustable (TODO?)
     for (int i = 0; i < g->n; i++) {
-      double cx = width / 2.0;
-      double cy = width / 2.0;
-      double gx = cx - g->nodes[i].x;
-      double gy = cy - g->nodes[i].y;
-      double g_dist = sqrt(gx*gx + gy*gy) + 1e-4;
-
-      g->nodes[i].dx += gx/g_dist * grav_strength * g_dist;
-      g->nodes[i].dy += gy/g_dist * grav_strength * g_dist;
+      double gx = centerx - g->nodes[i].x;
+      double gy = centery - g->nodes[i].y;
+      g->nodes[i].dx += gx * grav_strength * k;
+      g->nodes[i].dy += gy * grav_strength * k;
     }
 
     // Appliquer déplacements
+    if (t < 0.0)
+      t = 10.0 * k;
     for (int i=0; i < g->n; i++) {
       double dx = g->nodes[i].dx,
              dy = g->nodes[i].dy;
