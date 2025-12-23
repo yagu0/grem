@@ -1,6 +1,6 @@
 __pycache__/
 /pkg/build/
-/.venv/
+.venv/
 .ipynb_checkpoints/
 *.egg-info/
 *.swp
