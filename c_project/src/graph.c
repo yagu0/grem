@@ -116,9 +116,9 @@ void grow_binary_tree(Graph* g, double width)
 {
   int i = 0;
   while (g->nodes[i].degree >= 2) {
-    g->nodes[i].size++; //augment sizes on the path
-    int a_idx = g->nodes[i].neighbors[1 - (i == 0 ?  1 : 0)],
-        b_idx = g->nodes[i].neighbors[2 - (i == 0 ?  1 : 0)];
+    g->nodes[i].size += 2; //augment sizes on the path
+    int a_idx = g->nodes[i].neighbors[1 - (i == 0 ? 1 : 0)],
+        b_idx = g->nodes[i].neighbors[2 - (i == 0 ? 1 : 0)];
     int a = g->nodes[a_idx].size,
         b = g->nodes[b_idx].size;
     double Cab = ( (a + 1) * (2*a + 1) * (a + 3*b + 3) ) /
@@ -147,8 +147,83 @@ Graph make_random_binary_tree(int n, double width, int seed)
   g.nodes = NULL;
   g.n = 0;
   re_init_nodes(&g, 1, width);
-  for (int i=1; i<n; i++)
+  while (g.n < n)
     grow_binary_tree(&g, width);
+  return g;
+}
+
+// Assume that g is an output of make_random_nary_tree() below
+void grow_nary_tree(Graph* g, double alpha, double width)
+{
+  int i = 0,
+      pos = 0;
+  while (g->nodes[i].degree >= 1) {
+loopBegin:
+    g->nodes[i].size++; //augment size on the path (add one leaf)
+    int start_idx = (i == 0 ? 0 : 1);
+    double loc = (double)rand() / RAND_MAX;
+    int k = g->nodes[i].degree - start_idx; //neighbors count
+    int sumNi2 = 0;
+    for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
+      int ns = g->nodes[i].neighbors[jj].size;
+      sumNi += ns * ns;
+    }
+    double pnj = alpha*(n+1)*(k-alpha)*(n-1)*n*(n+1)
+      /((alpha*n-1)*(k+1)*alpha*6) * (1/6)*(n^2-sumNi2);
+    double where = 0.0;
+    for (int j = 0; j <= k; j++) {
+      where += pnj;
+      if (where >= loc) {
+        pos = start_idx + j;
+        goto afterLoop;
+      }
+    }
+    // From here we know will recurse in some sub-tree:
+    for (int j = 0; j < k; j++) {
+      int nj = g->nodes[i].neighbors[j+start_idx].size;
+      int sumNij = ;
+      for (int ii=0; ii<k; ii++) {
+        if (ii == j)
+          continue;
+        for (int jj=0; jj<k; jj++) {
+          if (jj == j || jj == ii)
+            continue;
+          sumNij += g->nodes[i].neighbors[ii+start_idx].size *
+            g->nodes[i].neighbors[jj+start_idx].size;
+        }
+      }
+      pnj = alpha*(n+1)*(alpha*nj-1)*(n-1)*n*(n+1)
+        /((alpha*n-1)*(1+nj)*alpha*6) * ( (nj-1)*nj*(nj+1)/6 +
+          (nj-1)*nj*(nj+1)*(n-nj)/2 + sumNij*(1+nj)/6 );
+      where += pnj;
+      if (where >= loc) {
+        i = g->nodes[i].neighbors[j+start_idx];
+        goto loopBegin;
+      }
+    }
+  }
+afterLoop:
+  // Add one leaf from current leaf, at position pos.
+  int old_n = g->n;
+  re_init_nodes(g, 1, width);
+  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
+             g->nodes[i].degree, 1);
+  g->nodes[i].neighbors[g->nodes[i].degree] = old_n;
+  g->nodes[old_n].degree = 1;
+  g->nodes[old_n].neighbors = malloc(sizeof(int));
+  g->nodes[old_n].neighbors[0] = i;
+  g->nodes[i].degree++;
+}
+
+Graph make_random_nary_tree(int n, double alpha, double width, int seed)
+{
+  init_rand_gen(seed);
+  Graph g;
+  g.nodes = NULL;
+  g.n = 0;
+  re_init_nodes(&g, 1, width);
+  while (g.n < n)
+    grow_nary_tree(&g, alpha, width);
   return g;
 }
 

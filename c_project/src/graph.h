@@ -7,7 +7,7 @@ typedef struct Node {
   double dx, dy;
   int degree;
   int* neighbors;
-  int size; //for binary trees only
+  int size; //for (bi)nary trees only
 } Node;
 
 typedef struct Graph {
@@ -25,6 +25,9 @@ Graph make_random_tree(int n, int mode, double width, int seed);
 
 // Random binary tree following https://arxiv.org/pdf/2401.07891
 Graph make_random_binary_tree(int n, double width, int seed);
+
+// Random n-ary tree following [source?]
+Graph make_random_nary_tree(int n, double alpha, double width, int seed);
 
 // Read/write functions (from/to file)
 void write_graph(Graph g, char* path);
