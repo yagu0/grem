@@ -8,7 +8,7 @@
 int main(int argc, char** argv) {
   //Graph g = make_random_tree(10, 0, 100, 32);
   //Graph g = make_random_graph(10, 0.2, 100, 32);
-  Graph g = make_random_nary_tree(100, 0.55, 100, 32);
+  Graph g = make_random_nary_tree(10, 0.55, 100, 32);
   //spring_layout(&g, 100, 100);
   free_graph(g);
   return 0;

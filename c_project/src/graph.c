@@ -158,7 +158,10 @@ void grow_nary_tree(Graph* g, double alpha, double width)
   int i = 0,
       pos = 0,
       n = (!(g->nodes) ? 0 : g->nodes[0].size); //leaves count
-  while (g->nodes[i].degree >= 1) {
+
+int yyy = 0;
+
+  while (!!(g->nodes) && g->nodes[i].degree >= 1       && yyy++ < 10) {
 loopBegin:
     g->nodes[i].size++; //augment size on the path (add one leaf)
     int start_idx = (i == 0 ? 0 : 1);
@@ -167,12 +170,20 @@ loopBegin:
     int sumNi2 = 0;
     for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
       int ns = g->nodes[ g->nodes[i].neighbors[jj] ].size;
+
+printf("+++ %i %i %i\n",ns,jj, n);
+
       sumNi2 += ns * ns;
     }
-    double pnj = (k-alpha)*(n*n-sumNi2) / ((alpha*n-1)*(k+1)*(n-1)*n);
+
+printf("--- %i %i\n",n,sumNi2);
+
+    double pnj =
+      (k-alpha)*(n*n-sumNi2) / ((alpha*n-1)*(k+1)*(n >= 2 ? n-1 : 1)*n);
     double where = 0.0;
     for (int j = 0; j <= k; j++) {
       where += pnj;
+printf("%f %i %f %i %i\n",(k-alpha),(n*n-sumNi2),(alpha*n-1),(k+1),((n >= 2 ? n-1 : 1)*n));
       if (where >= loc) {
         pos = start_idx + j;
         goto afterLoop;
@@ -193,8 +204,9 @@ loopBegin:
         }
       }
       pnj = (alpha*nj-1) * ((nj-1)*nj*(nj+1)+3*nj*(nj+1)*(n-nj)+sumNij*(1+nj))
-        / ((alpha*n-1)*(1+nj) * (n-1)*n);
+        / ((alpha*n-1)*(1+nj)*(n >= 2 ? n-1 : 1)*n);
       where += pnj;
+//printf("%f\n",where);
       if (where >= loc) {
         i = g->nodes[i].neighbors[j+start_idx];
         goto loopBegin;
