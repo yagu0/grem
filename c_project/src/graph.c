@@ -169,6 +169,12 @@ loopBegin:
     int k = g->nodes[i].degree - start_idx; //neighbors count
     int sumNi2 = 0;
     for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
+
+int testt = g->nodes[i].neighbors[jj];
+
+printf("%i %i %i\n",jj, g->nodes[i].neighbors[jj], g->nodes[i].degree);
+Node nn = g->nodes[ g->nodes[i].neighbors[jj] ];
+
       int ns = g->nodes[ g->nodes[i].neighbors[jj] ].size;
 
 printf("+++ %i %i %i\n",ns,jj, n);
