@@ -157,11 +157,8 @@ void grow_nary_tree(Graph* g, double alpha, double width)
 {
   int i = 0,
       pos = 0,
-      n = (!(g->nodes) ? 0 : g->nodes[0].size); //leaves count
-
-int yyy = 0;
-
-  while (!!(g->nodes) && g->nodes[i].degree >= 1       && yyy++ < 10) {
+      n = g->nodes[0].size; //leaves count
+  while (g->nodes[i].degree >= 1) {
 loopBegin:
     g->nodes[i].size++; //augment size on the path (add one leaf)
     int start_idx = (i == 0 ? 0 : 1);
@@ -169,27 +166,23 @@ loopBegin:
     int k = g->nodes[i].degree - start_idx; //neighbors count
     int sumNi2 = 0;
     for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
-
-int testt = g->nodes[i].neighbors[jj];
-
-printf("%i %i %i\n",jj, g->nodes[i].neighbors[jj], g->nodes[i].degree);
-Node nn = g->nodes[ g->nodes[i].neighbors[jj] ];
-
       int ns = g->nodes[ g->nodes[i].neighbors[jj] ].size;
-
-printf("+++ %i %i %i\n",ns,jj, n);
-
       sumNi2 += ns * ns;
     }
 
-printf("--- %i %i\n",n,sumNi2);
+if (sumNi2 > n* n) {
+  printf("ERROR: %i %i\n",sumNi2, (n*n));
+  exit(1);
+}
 
-    double pnj =
-      (k-alpha)*(n*n-sumNi2) / ((alpha*n-1)*(k+1)*(n >= 2 ? n-1 : 1)*n);
+    double pnj = (k-alpha)*(n >= 1 ? n*n-sumNi2 : 1)
+      / ((alpha*n-1)*(k+1)*(n >= 2 ? (n-1)*n : 1));
+
+      printf("PNJ 1: %f %f %f %i %i\n",pnj, ((alpha*n-1)*(k+1)*(n >= 2 ? n-1 : 1)*n), (alpha*n-1), (k+1), (n >= 2 ? (n-1)*n : 1));
+
     double where = 0.0;
     for (int j = 0; j <= k; j++) {
       where += pnj;
-printf("%f %i %f %i %i\n",(k-alpha),(n*n-sumNi2),(alpha*n-1),(k+1),((n >= 2 ? n-1 : 1)*n));
       if (where >= loc) {
         pos = start_idx + j;
         goto afterLoop;
@@ -211,8 +204,8 @@ printf("%f %i %f %i %i\n",(k-alpha),(n*n-sumNi2),(alpha*n-1),(k+1),((n >= 2 ? n-
       }
       pnj = (alpha*nj-1) * ((nj-1)*nj*(nj+1)+3*nj*(nj+1)*(n-nj)+sumNij*(1+nj))
         / ((alpha*n-1)*(1+nj)*(n >= 2 ? n-1 : 1)*n);
+printf("PNJ 2: %f\n",pnj);
       where += pnj;
-//printf("%f\n",where);
       if (where >= loc) {
         i = g->nodes[i].neighbors[j+start_idx];
         goto loopBegin;
@@ -240,6 +233,7 @@ Graph make_random_nary_tree(int n, double alpha, double width, int seed)
   Graph g;
   g.nodes = NULL;
   g.n = 0;
+  re_init_nodes(&g, 1, width);
   while (g.n < n)
     grow_nary_tree(&g, alpha, width);
   return g;
