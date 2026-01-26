@@ -158,58 +158,53 @@ void grow_nary_tree(Graph* g, double alpha, double width)
   int i = 0,
       pos = 0,
       n = g->nodes[0].size; //leaves count
-  while (g->nodes[i].degree >= 1) {
 loopBegin:
-    g->nodes[i].size++; //augment size on the path (add one leaf)
-    int start_idx = (i == 0 ? 0 : 1);
-    double loc = (double)rand() / RAND_MAX;
-    int k = g->nodes[i].degree - start_idx; //neighbors count
+  int start_idx = (i == 0 ? 0 : 1);
+  double loc = (double)rand() / RAND_MAX;
+  int k = g->nodes[i].degree - start_idx; //"up" neighbors count
+  if (k == 0)
+    goto afterLoop;
+  double pnj = 1.0 / 3.0; //n == 1 -> one main branch only => 3 choices
+  if (n >= 2) {
     int sumNi2 = 0;
     for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
       int ns = g->nodes[ g->nodes[i].neighbors[jj] ].size;
       sumNi2 += ns * ns;
     }
-
-if (sumNi2 > n* n) {
-  printf("ERROR: %i %i\n",sumNi2, (n*n));
-  exit(1);
-}
-
-    double pnj = (k-alpha)*(n >= 1 ? n*n-sumNi2 : 1)
-      / ((alpha*n-1)*(k+1)*(n >= 2 ? (n-1)*n : 1));
-
-      printf("PNJ 1: %f %f %f %i %i\n",pnj, ((alpha*n-1)*(k+1)*(n >= 2 ? n-1 : 1)*n), (alpha*n-1), (k+1), (n >= 2 ? (n-1)*n : 1));
-
-    double where = 0.0;
-    for (int j = 0; j <= k; j++) {
-      where += pnj;
-      if (where >= loc) {
-        pos = start_idx + j;
-        goto afterLoop;
+    pnj = (k-alpha)*(n*n-sumNi2) / ((alpha*n-1)*(k+1)*((n-1)*n));
+  }
+  double where = 0.0;
+  for (int j = 0; j <= k; j++) {
+    where += pnj;
+    if (where >= loc) {
+      pos = start_idx + j;
+      goto afterLoop;
+    }
+  }
+  // From here we know will recurse in some sub-tree:
+  if (k == 1) { //true in particular if n == 1
+    i = g->nodes[i].neighbors[start_idx];
+    goto loopBegin;
+  }
+  for (int j = 0; j < k; j++) {
+    int nj = g->nodes[ g->nodes[i].neighbors[j+start_idx] ].size;
+    int sumNij = 0;
+    for (int ii=0; ii<k; ii++) {
+      if (ii == j)
+        continue;
+      for (int jj=0; jj<k; jj++) {
+        if (jj == j || jj == ii)
+          continue;
+        sumNij += g->nodes[ g->nodes[i].neighbors[ii+start_idx] ].size *
+          g->nodes[ g->nodes[i].neighbors[jj+start_idx] ].size;
       }
     }
-    // From here we know will recurse in some sub-tree:
-    for (int j = 0; j < k; j++) {
-      int nj = g->nodes[ g->nodes[i].neighbors[j+start_idx] ].size;
-      int sumNij = 0;
-      for (int ii=0; ii<k; ii++) {
-        if (ii == j)
-          continue;
-        for (int jj=0; jj<k; jj++) {
-          if (jj == j || jj == ii)
-            continue;
-          sumNij += g->nodes[ g->nodes[i].neighbors[ii+start_idx] ].size *
-            g->nodes[ g->nodes[i].neighbors[jj+start_idx] ].size;
-        }
-      }
-      pnj = (alpha*nj-1) * ((nj-1)*nj*(nj+1)+3*nj*(nj+1)*(n-nj)+sumNij*(1+nj))
-        / ((alpha*n-1)*(1+nj)*(n >= 2 ? n-1 : 1)*n);
-printf("PNJ 2: %f\n",pnj);
-      where += pnj;
-      if (where >= loc) {
-        i = g->nodes[i].neighbors[j+start_idx];
-        goto loopBegin;
-      }
+    pnj = (alpha*nj-1) * ((nj-1)*nj*(nj+1)+3*nj*(nj+1)*(n-nj)+sumNij*(1+nj))
+      / ((alpha*n-1)*(1+nj)*(n >= 2 ? n-1 : 1)*n);
+    where += pnj;
+    if (where >= loc) {
+      i = g->nodes[i].neighbors[j+start_idx];
+      goto loopBegin;
     }
   }
 afterLoop:
@@ -225,6 +220,14 @@ afterLoop:
   g->nodes[old_n].neighbors = malloc(sizeof(int));
   g->nodes[old_n].neighbors[0] = i;
   g->nodes[i].degree++;
+  if (k > 0 || i == 0) {
+    // Update size from here to root
+    while (i > 0) {
+      i = g->nodes[i].neighbors[0];
+      g->nodes[i].size++;
+    }
+    g->nodes[0].size++;
+  }
 }
 
 Graph make_random_nary_tree(int n, double alpha, double width, int seed)
