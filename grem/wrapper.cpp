@@ -160,6 +160,13 @@ PYBIND11_MODULE(_native, m) {
     },
     py::arg("n"), py::arg("width"), py::arg("seed") = -1);
 
+  m.def(
+    "make_random_nary_tree",
+    [](int n, double alpha, double width, int seed) {
+      return make_graph(make_random_nary_tree(n, alpha, width, seed));
+    },
+    py::arg("n"), py::arg("alpha"), py::arg("width"), py::arg("seed") = -1);
+
   // TODO: read/write graph functions
 
   // Spring layout
