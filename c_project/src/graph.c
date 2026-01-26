@@ -111,6 +111,26 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
+growOneTwo(Graph* g, int from, int count, int pos)
+{
+  int old_n = g->n;
+  re_init_nodes(g, count, width);
+  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
+             g->nodes[i].degree, count);
+  if (count == 1) {
+    // TODO
+  }
+  else {
+    for (int j = 0; j < count; j++) {
+      g->nodes[i].neighbors[g->nodes[i].degree + j] = old_n + j;
+      g->nodes[old_n + j].degree = 1;
+      g->nodes[old_n + j].neighbors = malloc(sizeof(int));
+      g->nodes[old_n + j].neighbors[0] = i;
+    }
+  }
+  g->nodes[from].degree += 2;
+}
+
 // Assume that g is an output of make_random_binary_tree() below
 void grow_binary_tree(Graph* g, double width)
 {
@@ -127,17 +147,7 @@ void grow_binary_tree(Graph* g, double width)
     i = (lr < Cab ? a_idx : b_idx);
   }
   // Grow one cherry from current leaf.
-  int old_n = g->n;
-  re_init_nodes(g, 2, width);
-  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
-             g->nodes[i].degree, 2);
-  for (int j = 0; j < 2; j++) {
-    g->nodes[i].neighbors[g->nodes[i].degree + j] = old_n + j;
-    g->nodes[old_n + j].degree = 1;
-    g->nodes[old_n + j].neighbors = malloc(sizeof(int));
-    g->nodes[old_n + j].neighbors[0] = i;
-  }
-  g->nodes[i].degree += 2;
+  growOneTwo(g, i, 2, 0);
 }
 
 Graph make_random_binary_tree(int n, double width, int seed)
@@ -156,59 +166,64 @@ Graph make_random_binary_tree(int n, double width, int seed)
 void grow_nary_tree(Graph* g, double alpha, double width)
 {
   int i = 0,
-      pos = 0,
-      n = g->nodes[0].size; //leaves count
+      pos = 0;
 loopBegin:
+  f = g->nodes[i].size; //leaves count from local root
   int start_idx = (i == 0 ? 0 : 1);
   double loc = (double)rand() / RAND_MAX;
   int k = g->nodes[i].degree - start_idx; //"up" neighbors count
   if (k == 0)
     goto afterLoop;
-  double pnj = 1.0 / 3.0; //n == 1 -> one main branch only => 3 choices
-  if (n >= 2) {
-    int sumNi2 = 0;
+  double p = 1.0 / 3.0; //f == 1 -> one main branch only => 3 choices
+  if (f >= 2) {
+    int sumFi2 = 0;
     for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
-      int ns = g->nodes[ g->nodes[i].neighbors[jj] ].size;
-      sumNi2 += ns * ns;
+      int fs = g->nodes[ g->nodes[i].neighbors[jj] ].size;
+      sumFi2 += fs * fs;
     }
-    pnj = (k-alpha)*(n*n-sumNi2) / ((alpha*n-1)*(k+1)*((n-1)*n));
+    p = (k-alpha)*(f*f-sumFi2) / ((alpha*f-1)*(k+1)*((f-1)*f));
   }
+printf("P0: %f %i %i\n",p,k,f);
   double where = 0.0;
   for (int j = 0; j <= k; j++) {
-    where += pnj;
+    where += p;
     if (where >= loc) {
       pos = start_idx + j;
       goto afterLoop;
     }
   }
   // From here we know will recurse in some sub-tree:
-  if (k == 1) { //true in particular if n == 1
+  if (k == 1) { //true in particular if f == 1
     i = g->nodes[i].neighbors[start_idx];
     goto loopBegin;
   }
   for (int j = 0; j < k; j++) {
-    int nj = g->nodes[ g->nodes[i].neighbors[j+start_idx] ].size;
-    int sumNij = 0;
+    int fj = g->nodes[ g->nodes[i].neighbors[j+start_idx] ].size;
+    int sumFij = 0;
     for (int ii=0; ii<k; ii++) {
       if (ii == j)
         continue;
       for (int jj=0; jj<k; jj++) {
         if (jj == j || jj == ii)
           continue;
-        sumNij += g->nodes[ g->nodes[i].neighbors[ii+start_idx] ].size *
+        sumFij += g->nodes[ g->nodes[i].neighbors[ii+start_idx] ].size *
           g->nodes[ g->nodes[i].neighbors[jj+start_idx] ].size;
       }
     }
-    pnj = (alpha*nj-1) * ((nj-1)*nj*(nj+1)+3*nj*(nj+1)*(n-nj)+sumNij*(1+nj))
-      / ((alpha*n-1)*(1+nj)*(n >= 2 ? n-1 : 1)*n);
-    where += pnj;
+    p = (alpha*fj-1) * ((fj-1)*fj*(fj+1)+3*fj*(fj+1)*(f-fj)+sumFij*(1+fj))
+      / ((alpha*f-1)*(1+fj)*(f-1)*f);
+printf("P: %f\n",p);
+    where += p;
     if (where >= loc) {
       i = g->nodes[i].neighbors[j+start_idx];
       goto loopBegin;
     }
   }
 afterLoop:
-  // Add one leaf from current leaf, at position pos.
+  // Add one leaf from current node, at position pos.
+
+  // TODO: growOneTow(1 or 2), depending if k == 0 or >= 2
+
   int old_n = g->n;
   re_init_nodes(g, 1, width);
   tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
@@ -220,13 +235,13 @@ afterLoop:
   g->nodes[old_n].neighbors = malloc(sizeof(int));
   g->nodes[old_n].neighbors[0] = i;
   g->nodes[i].degree++;
-  if (k > 0 || i == 0) {
-    // Update size from here to root
+  g->nodes[i].size++;
+  if (k > 0) {
+    // Branch creation: update size from here to root
     while (i > 0) {
       i = g->nodes[i].neighbors[0];
       g->nodes[i].size++;
     }
-    g->nodes[0].size++;
   }
 }
 
