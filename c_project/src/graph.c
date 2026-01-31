@@ -64,7 +64,6 @@ Graph make_random_graph(int n, double p, double width, int seed)
       }
     }
   }
-
   return g;
 }
 
@@ -117,18 +116,20 @@ growOneTwo(Graph* g, int from, int count, int pos)
   re_init_nodes(g, count, width);
   tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
              g->nodes[i].degree, count);
-  if (count == 1) {
-    // TODO
+  if (count == 1 && pos >= 0) {
+    for (int i = g->nodes[from].degree; i > pos; i--)
+      g->nodes[from].neighbors[i] = g->nodes[from].neighbors[i-1];
+    g->nodes[from].neighbors[pos] = old_n;
   }
   else {
-    for (int j = 0; j < count; j++) {
-      g->nodes[i].neighbors[g->nodes[i].degree + j] = old_n + j;
-      g->nodes[old_n + j].degree = 1;
-      g->nodes[old_n + j].neighbors = malloc(sizeof(int));
-      g->nodes[old_n + j].neighbors[0] = i;
+    for (int i = 0; i < count; i++) {
+      g->nodes[from].neighbors[g->nodes[from].degree + i] = old_n + i;
+      g->nodes[old_n + i].degree = 1;
+      g->nodes[old_n + i].neighbors = malloc(sizeof(int));
+      g->nodes[old_n + i].neighbors[0] = from;
     }
   }
-  g->nodes[from].degree += 2;
+  g->nodes[from].degree += count;
 }
 
 // Assume that g is an output of make_random_binary_tree() below
@@ -147,7 +148,7 @@ void grow_binary_tree(Graph* g, double width)
     i = (lr < Cab ? a_idx : b_idx);
   }
   // Grow one cherry from current leaf.
-  growOneTwo(g, i, 2, 0);
+  growOneTwo(g, i, 2, -1);
 }
 
 Graph make_random_binary_tree(int n, double width, int seed)
@@ -192,11 +193,7 @@ printf("P0: %f %i %i\n",p,k,f);
       goto afterLoop;
     }
   }
-  // From here we know will recurse in some sub-tree:
-  if (k == 1) { //true in particular if f == 1
-    i = g->nodes[i].neighbors[start_idx];
-    goto loopBegin;
-  }
+  // From here we know will recurse in some sub-tree (k >= 2):
   for (int j = 0; j < k; j++) {
     int fj = g->nodes[ g->nodes[i].neighbors[j+start_idx] ].size;
     int sumFij = 0;
@@ -220,28 +217,12 @@ printf("P: %f\n",p);
     }
   }
 afterLoop:
-  // Add one leaf from current node, at position pos.
-
-  // TODO: growOneTow(1 or 2), depending if k == 0 or >= 2
-
-  int old_n = g->n;
-  re_init_nodes(g, 1, width);
-  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
-             g->nodes[i].degree, 1);
-  for (int ii = g->nodes[i].degree; ii > pos; ii--)
-    g->nodes[i].neighbors[ii] = g->nodes[i].neighbors[ii-1];
-  g->nodes[i].neighbors[pos] = old_n;
-  g->nodes[old_n].degree = 1;
-  g->nodes[old_n].neighbors = malloc(sizeof(int));
-  g->nodes[old_n].neighbors[0] = i;
-  g->nodes[i].degree++;
-  g->nodes[i].size++;
-  if (k > 0) {
-    // Branch creation: update size from here to root
-    while (i > 0) {
-      i = g->nodes[i].neighbors[0];
-      g->nodes[i].size++;
-    }
+  // Add one or two leaf from current node (at position pos).
+  growOneTwo(g, i, (k == 0 ? 2 : 1), pos)
+  // Update size from here to root
+  while (i >= 0) {
+    g->nodes[i].size++;
+    i = g->nodes[i].neighbors[0];
   }
 }
 
@@ -252,6 +233,7 @@ Graph make_random_nary_tree(int n, double alpha, double width, int seed)
   g.nodes = NULL;
   g.n = 0;
   re_init_nodes(&g, 1, width);
+  g.nodes[0].size = 1; //root = leaf for now
   while (g.n < n)
     grow_nary_tree(&g, alpha, width);
   return g;
