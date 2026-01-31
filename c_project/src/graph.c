@@ -110,12 +110,12 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
-growOneTwo(Graph* g, int from, int count, int pos)
+void growOneTwo(Graph* g, int from, int count, int pos, double width)
 {
   int old_n = g->n;
   re_init_nodes(g, count, width);
-  tryRealloc((void**)&g->nodes[i].neighbors, sizeof(int),
-             g->nodes[i].degree, count);
+  tryRealloc((void**)&g->nodes[from].neighbors, sizeof(int),
+             g->nodes[from].degree, count);
   if (count == 1 && pos >= 0) {
     for (int i = g->nodes[from].degree; i > pos; i--)
       g->nodes[from].neighbors[i] = g->nodes[from].neighbors[i-1];
@@ -148,7 +148,7 @@ void grow_binary_tree(Graph* g, double width)
     i = (lr < Cab ? a_idx : b_idx);
   }
   // Grow one cherry from current leaf.
-  growOneTwo(g, i, 2, -1);
+  growOneTwo(g, i, 2, -1, width);
 }
 
 Graph make_random_binary_tree(int n, double width, int seed)
@@ -169,21 +169,19 @@ void grow_nary_tree(Graph* g, double alpha, double width)
   int i = 0,
       pos = 0;
 loopBegin:
-  f = g->nodes[i].size; //leaves count from local root
+  int f = g->nodes[i].size; //leaves count from local root
   int start_idx = (i == 0 ? 0 : 1);
   double loc = (double)rand() / RAND_MAX;
   int k = g->nodes[i].degree - start_idx; //"up" neighbors count
   if (k == 0)
     goto afterLoop;
-  double p = 1.0 / 3.0; //f == 1 -> one main branch only => 3 choices
-  if (f >= 2) {
-    int sumFi2 = 0;
-    for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
-      int fs = g->nodes[ g->nodes[i].neighbors[jj] ].size;
-      sumFi2 += fs * fs;
-    }
-    p = (k-alpha)*(f*f-sumFi2) / ((alpha*f-1)*(k+1)*((f-1)*f));
+  // From here k >= 2
+  int sumFi2 = 0;
+  for (int jj = start_idx; jj < g->nodes[i].degree; jj++) {
+    int fs = g->nodes[ g->nodes[i].neighbors[jj] ].size;
+    sumFi2 += fs * fs;
   }
+  double p = (k-alpha)*(f*f-sumFi2) / ((alpha*f-1)*(k+1)*((f-1)*f));
 printf("P0: %f %i %i\n",p,k,f);
   double where = 0.0;
   for (int j = 0; j <= k; j++) {
@@ -218,10 +216,12 @@ printf("P: %f\n",p);
   }
 afterLoop:
   // Add one or two leaf from current node (at position pos).
-  growOneTwo(g, i, (k == 0 ? 2 : 1), pos)
+  growOneTwo(g, i, (k == 0 ? 2 : 1), pos, width);
   // Update size from here to root
-  while (i >= 0) {
+  while (true) {
     g->nodes[i].size++;
+    if (i == 0)
+      break;
     i = g->nodes[i].neighbors[0];
   }
 }
