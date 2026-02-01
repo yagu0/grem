@@ -110,24 +110,24 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   return g;
 }
 
-void growOneTwo(Graph* g, int from, int count, int pos, double width)
+void growOneTwo(Graph* g, int from, int count, int pos, int isz, double width)
 {
   int old_n = g->n;
   re_init_nodes(g, count, width);
   tryRealloc((void**)&g->nodes[from].neighbors, sizeof(int),
              g->nodes[from].degree, count);
-  if (count == 1 && pos >= 0) {
-    for (int i = g->nodes[from].degree; i > pos; i--)
-      g->nodes[from].neighbors[i] = g->nodes[from].neighbors[i-1];
-    g->nodes[from].neighbors[pos] = old_n;
-  }
-  else {
-    for (int i = 0; i < count; i++) {
-      g->nodes[from].neighbors[g->nodes[from].degree + i] = old_n + i;
-      g->nodes[old_n + i].degree = 1;
-      g->nodes[old_n + i].neighbors = malloc(sizeof(int));
-      g->nodes[old_n + i].neighbors[0] = from;
+  for (int i = 0; i < count; i++) {
+    if (pos >= 0 && count == 1) {
+      for (int j = g->nodes[from].degree; j > pos; j--)
+        g->nodes[from].neighbors[j] = g->nodes[from].neighbors[j-1];
+      g->nodes[from].neighbors[pos] = old_n;
     }
+    else
+      g->nodes[from].neighbors[g->nodes[from].degree + i] = old_n + i;
+    g->nodes[old_n + i].degree = 1;
+    g->nodes[old_n + i].neighbors = malloc(sizeof(int));
+    g->nodes[old_n + i].neighbors[0] = from;
+    g->nodes[old_n + i].size = isz;
   }
   g->nodes[from].degree += count;
 }
@@ -148,7 +148,7 @@ void grow_binary_tree(Graph* g, double width)
     i = (lr < Cab ? a_idx : b_idx);
   }
   // Grow one cherry from current leaf.
-  growOneTwo(g, i, 2, -1, width);
+  growOneTwo(g, i, 2, -1, 0, width);
 }
 
 Graph make_random_binary_tree(int n, double width, int seed)
@@ -182,7 +182,6 @@ loopBegin:
     sumFi2 += fs * fs;
   }
   double p = (k-alpha)*(f*f-sumFi2) / ((alpha*f-1)*(k+1)*((f-1)*f));
-printf("P0: %f %i %i\n",p,k,f);
   double where = 0.0;
   for (int j = 0; j <= k; j++) {
     where += p;
@@ -207,7 +206,6 @@ printf("P0: %f %i %i\n",p,k,f);
     }
     p = (alpha*fj-1) * ((fj-1)*fj*(fj+1)+3*fj*(fj+1)*(f-fj)+sumFij*(1+fj))
       / ((alpha*f-1)*(1+fj)*(f-1)*f);
-printf("P: %f\n",p);
     where += p;
     if (where >= loc) {
       i = g->nodes[i].neighbors[j+start_idx];
@@ -216,7 +214,7 @@ printf("P: %f\n",p);
   }
 afterLoop:
   // Add one or two leaf from current node (at position pos).
-  growOneTwo(g, i, (k == 0 ? 2 : 1), pos, width);
+  growOneTwo(g, i, (k == 0 ? 2 : 1), pos, 1, width);
   // Update size from here to root
   while (true) {
     g->nodes[i].size++;
