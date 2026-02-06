@@ -26,14 +26,18 @@ void tryRealloc(void** v, int cell_size, int size, int nb)
 }
 
 // Initialize a graph with only nodes (no edges)
-void re_init_nodes(Graph* g, int n, double width)
+void re_init_nodes(Graph* g, int n, double width, bool random)
 {
   tryRealloc((void**)&g->nodes, sizeof(Node), g->n, n);
-  // Positions aléatoires initiales
+  // Positions initiales aléatoires, ou tout à 0 (puis choix dans algo)
   for (int i = g->n; i < g->n + n; i++) {
     g->nodes[i].id = i;
-    g->nodes[i].x = ((double) rand() / RAND_MAX) * width;
-    g->nodes[i].y = ((double) rand() / RAND_MAX) * width;
+    if (random) {
+      g->nodes[i].x = ((double) rand() / RAND_MAX) * width;
+      g->nodes[i].y = ((double) rand() / RAND_MAX) * width;
+    }
+    else
+      g->nodes[i].x = g->nodes[i].y = 0;
     g->nodes[i].dx = g->nodes[i].dy = 0;
     g->nodes[i].degree = 0;
     g->nodes[i].neighbors = NULL;
@@ -49,7 +53,7 @@ Graph make_random_graph(int n, double p, double width, int seed)
   Graph g;
   g.nodes = NULL;
   g.n = 0;
-  re_init_nodes(&g, n, width);
+  re_init_nodes(&g, n, width, true);
   for (int i = 0; i < n; i++) {
     for (int j = i+1; j < n; j++) {
       if (((double) rand() / RAND_MAX) < p) {
@@ -74,7 +78,7 @@ Graph make_random_tree(int n, int mode, double width, int seed)
   Graph g;
   g.nodes = NULL;
   g.n = 0;
-  re_init_nodes(&g, n, width);
+  re_init_nodes(&g, n, width, true);
   for (int i = 1; i < n; i++) {
     int M = 0;
     // tirer au hasard M dans [0, i-1] : rattacher i à M, continuer
@@ -113,10 +117,12 @@ Graph make_random_tree(int n, int mode, double width, int seed)
 void growOneTwo(Graph* g, int from, int count, int pos, int isz, double width)
 {
   int old_n = g->n;
-  re_init_nodes(g, count, width);
+  re_init_nodes(g, count, width, false);
   tryRealloc((void**)&g->nodes[from].neighbors, sizeof(int),
              g->nodes[from].degree, count);
   for (int i = 0; i < count; i++) {
+    g->nodes[old_n + i].x = g->nodes[old_n].x + //TODO: si racine, direction aleatoire
+    g->nodes[old_n + i].y = g->nodes[old_n].y + //TODO: sinon, aller dans la direction parent-->enfant un peu à gauche / droite
     if (pos >= 0 && count == 1) {
       for (int j = g->nodes[from].degree; j > pos; j--)
         g->nodes[from].neighbors[j] = g->nodes[from].neighbors[j-1];
@@ -230,7 +236,7 @@ Graph make_random_nary_tree(int n, double alpha, double width, int seed)
   Graph g;
   g.nodes = NULL;
   g.n = 0;
-  re_init_nodes(&g, 1, width);
+  re_init_nodes(&g, 1, width, false);
   g.nodes[0].size = 1; //root = leaf for now
   while (g.n < n)
     grow_nary_tree(&g, alpha, width);
