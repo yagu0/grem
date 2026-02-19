@@ -121,8 +121,25 @@ void growOneTwo(Graph* g, int from, int count, int pos, int isz, double width)
   tryRealloc((void**)&g->nodes[from].neighbors, sizeof(int),
              g->nodes[from].degree, count);
   for (int i = 0; i < count; i++) {
-    g->nodes[old_n + i].x = g->nodes[old_n].x + //TODO: si racine, direction aleatoire
-    g->nodes[old_n + i].y = g->nodes[old_n].y + //TODO: sinon, aller dans la direction parent-->enfant un peu à gauche / droite
+    // Random direction from root:
+    double dir_x = (double)rand() / RAND_MAX,
+           dir_y = (double)rand() / RAND_MAX;
+    if (from > 0) {
+      // keep direction from parent otherwise
+      dir_x = g->nodes[from].x - g->nodes[ g->nodes[from].neighbors[0] ].x;
+      dir_y = g->nodes[from].y - g->nodes[ g->nodes[from].neighbors[0] ].y;
+    }
+    // Normalize directions:
+    double norm = sqrt(dir_x*dir_x + dir_y*dir_y);
+    dir_x /= norm;
+    dir_y /= norm;
+    if (count >= 2) {
+      // Add small random perturbation
+      dir_x += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
+      dir_y += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
+    }
+    g->nodes[old_n + i].x = g->nodes[old_n].x + dir_x;
+    g->nodes[old_n + i].y = g->nodes[old_n].y + dir_y;
     if (pos >= 0 && count == 1) {
       for (int j = g->nodes[from].degree; j > pos; j--)
         g->nodes[from].neighbors[j] = g->nodes[from].neighbors[j-1];
@@ -163,7 +180,7 @@ Graph make_random_binary_tree(int n, double width, int seed)
   Graph g;
   g.nodes = NULL;
   g.n = 0;
-  re_init_nodes(&g, 1, width);
+  re_init_nodes(&g, 1, width, true);
   while (g.n < n)
     grow_binary_tree(&g, width);
   return g;
