@@ -133,11 +133,9 @@ void growOneTwo(Graph* g, int from, int count, int pos, int isz, double width)
     double norm = sqrt(dir_x*dir_x + dir_y*dir_y);
     dir_x /= norm;
     dir_y /= norm;
-    if (count >= 2) {
-      // Add small random perturbation
-      dir_x += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
-      dir_y += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
-    }
+    // Add small random perturbation
+    dir_x += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
+    dir_y += 0.1 * (rand() % 2 == 0 ? 1 : -1) * (double)rand() / RAND_MAX;
     g->nodes[old_n + i].x = g->nodes[old_n].x + dir_x;
     g->nodes[old_n + i].y = g->nodes[old_n].y + dir_y;
     if (pos >= 0 && count == 1) {
