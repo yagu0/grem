@@ -1,3 +1,4 @@
 répulsion sur arêtes ?
 cherry sur sommet : faire apparaitre enfants proche du sommet parent
 répulsion arête sommet : calcul distances sommet à arête pour empêcher de traverser
+sommets en couleur affichage dynamique dans ordre d'apparition (boucle ?)
