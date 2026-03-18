@@ -56,11 +56,12 @@ def plot_graph(*, g=None, path=None, width=600, height=600, vertex_size=8):
 
     graph = ig.Graph(edges=edges, directed=False)
 
+    pal = ig.drawing.colors.RainbowPalette(n=n) #TODO: less than n?
     fig = ig.plot(
         graph,
         layout=coords,
         vertex_size=vertex_size,
-        vertex_color="skyblue",
+        vertex_color="skyblue" if path else [pal.get(n.color) for n in nodes],
         edge_color="grey",
         bbox=(width, height),
         target=None,  # fenêtre interactive si possible
