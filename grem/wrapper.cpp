@@ -36,6 +36,7 @@ static py::list graph_to_list(const Graph& g) {
     d["id"] = nd.id;
     d["x"] = nd.x;
     d["y"] = nd.y;
+    d["color"] = nd.color;
     d["degree"] = nd.degree;
     d["neighbors"] = node_neighbors(nd);
     L.append(d);
@@ -93,15 +94,19 @@ PYBIND11_MODULE(_native, m) {
     y : float
       Ordinate of the node
 
+    color : int
+      Color index (order of appearance)
+
     degree : int
       Number of neighbors (adjacent edges).
 
-    nodes : List[Node]
-            The list of neighbor nodes.
+    neighbors : List[Node]
+                The list of neighbor nodes.
     )pbdoc")
     .def_property_readonly("id", [](const Node& n){ return n.id; })
     .def_readwrite("x", &Node::x)
     .def_readwrite("y", &Node::y)
+    .def_property_readonly("color", [](const Node& n){ return n.color; })
     .def_property_readonly("degree", [](const Node& n){ return n.degree; })
     .def_property_readonly("neighbors", [](const Node& n){ return node_neighbors(n); })
     .def("__repr__", [](const Node& n){

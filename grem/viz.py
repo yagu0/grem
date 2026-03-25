@@ -40,18 +40,20 @@ def plot_graph(*, g=None, path=None, width=600, height=600, vertex_size=8):
             raise ValueError(f"Empty file: {path}")
 
         n, m = map(int, lines[0].split())
-        coords = [tuple(map(float, lines[i + 1].split())) for i in range(n)]
+        cc = [tuple(map(float, lines[i + 1].split())) for i in range(n)]
+        coords = [ [c[0], c[1]] for c in cc ]
+        colors = [ c[2] for c in cc ]
         edges = [tuple(map(int, lines[n + 1 + j].split())) for j in range(m)]
 
     else:
         # g est un objet Graph (exposé par le wrapper C++)
-        nodes = g.nodes
-        n = len(nodes)
-        coords = [(node["x"], node["y"]) for node in nodes]
+        n = len(g.nodes)
+        coords = [ (nd["x"], nd["y"]) for nd in g.nodes ]
+        colors = [ nd["color"] for nd in g.nodes ]
         edges = []
-        for i, node in enumerate(nodes):
-            for j in node["neighbors"]:
-                if i < j:  # éviter les doublons dans un graphe non orienté
+        for i, nd in enumerate(g.nodes):
+            for j in nd["neighbors"]:
+                if i < j: #éviter les doublons dans un graphe non orienté
                     edges.append((i, j))
 
     graph = ig.Graph(edges=edges, directed=False)
@@ -61,10 +63,10 @@ def plot_graph(*, g=None, path=None, width=600, height=600, vertex_size=8):
         graph,
         layout=coords,
         vertex_size=vertex_size,
-        vertex_color="skyblue" if path else [pal.get(n.color) for n in nodes],
+        vertex_color=[pal.get(c) for c in colors],
         edge_color="grey",
         bbox=(width, height),
-        target=None,  # fenêtre interactive si possible
+        target=None, #fenêtre interactive si possible
     )
 
     # Retourner le plot pour l'utilisateur

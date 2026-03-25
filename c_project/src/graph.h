@@ -9,11 +9,6 @@ typedef struct Node {
   int* neighbors;
   int size; //for (bi)nary trees only
   int color; //order of appearance (exact or estimated) for tree
-             //
-             //
-             // TODO !
-             //
-             //
 } Node;
 
 typedef struct Graph {

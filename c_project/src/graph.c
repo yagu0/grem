@@ -32,6 +32,7 @@ void re_init_nodes(Graph* g, int n, double width, bool random)
   // Positions initiales aléatoires, ou tout à 0 (puis choix dans algo)
   for (int i = g->n; i < g->n + n; i++) {
     g->nodes[i].id = i;
+    g->nodes[i].color = i; //same as ID in general (TODO: could change)
     if (random) {
       g->nodes[i].x = ((double) rand() / RAND_MAX) * width;
       g->nodes[i].y = ((double) rand() / RAND_MAX) * width;
@@ -267,7 +268,7 @@ void write_graph(Graph g, char* path)
   m /= 2;
   fprintf(fptr, "%i %i\n", g.n, m);
   for (int i=0; i < g.n; i++)
-    fprintf(fptr, "%f %f\n", g.nodes[i].x, g.nodes[i].y);
+    fprintf(fptr, "%f %f %i\n", g.nodes[i].x, g.nodes[i].y, g.nodes[i].color);
   for (int i=0; i < g.n; i++) {
     for (int j=0; j < g.nodes[i].degree; j++) {
       if (g.nodes[i].neighbors[j] > i)
@@ -292,7 +293,7 @@ Graph read_graph(char* path)
     nd->dx = nd->dy = 0.0;
     nd->degree = 0;
     nd->neighbors = NULL;
-    fscanf(f, "%lf %lf", &nd->x, &nd->y); //==2
+    fscanf(f, "%f %f %d", &nd->x, &nd->y, &nd->color); //==3
   }
   // Lecture des arêtes
   for (int j = 0; j < m; j++) {
