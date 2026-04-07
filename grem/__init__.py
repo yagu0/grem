@@ -122,7 +122,10 @@ from ._native import (
     Node,
 )
 
-from .viz import plot_graph
+from .viz import (
+    plot_graph,
+    animate_graph,
+)
 
 __all__ = [
     "Graph",
@@ -133,4 +136,5 @@ __all__ = [
     "make_random_nary_tree",
     "spring_layout",
     "plot_graph",
+    "animate_graph",
 ]
