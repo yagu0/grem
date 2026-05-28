@@ -13,7 +13,7 @@
 #define INIT_TEMP_FACTOR 5.0
 #define MAX_GROWTH_PER_ITER 1.01
 #define MAX_GLOBAL_GROWTH 1.5
-#define WALL_PUSH 0.2
+#define TARGET_FILL_RATIO 0.92
 
 QuadTree* new_quadtree(double cx, double cy, double width)
 {
@@ -204,7 +204,7 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
       insert_quadtree(qt, &g->nodes[i]);
 
     // Forces répulsives via Barnes-Hut
-    double k = target_size / sqrt(g->n);
+    double k = occupied / sqrt(g->n);
     for (int i = 0; i < g->n; i++)
       compute_force(&g->nodes[i], qt, THETA, k, graph_dist[i], d);
 
@@ -235,21 +235,6 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
       g->nodes[i].dy += gy * grav_strength * k;
     }
 
-    // Soft wall force towards the target square.
-    double half = target_size / 2.0;
-    for (int i = 0; i < g->n; i++) {
-      double rx = g->nodes[i].x - target_cx;
-      double ry = g->nodes[i].y - target_cy;
-      if (fabs(rx) > half) {
-        double excess = fabs(rx) - half;
-        g->nodes[i].dx += (rx > 0 ? -1.0 : 1.0) * WALL_PUSH * excess * k;
-      }
-      if (fabs(ry) > half) {
-        double excess = fabs(ry) - half;
-        g->nodes[i].dy += (ry > 0 ? -1.0 : 1.0) * WALL_PUSH * excess * k;
-      }
-    }
-
     // Appliquer déplacements
     if (t < 0.0)
       t = INIT_TEMP_FACTOR * k;
@@ -267,21 +252,34 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
           maxDelta = delta;
       }
 
-      // Keep coordinates in the square.
-      double half = target_size / 2.0;
-      if (g->nodes[i].x < target_cx - half)
-        g->nodes[i].x = target_cx - half;
-      else if (g->nodes[i].x > target_cx + half)
-        g->nodes[i].x = target_cx + half;
-      if (g->nodes[i].y < target_cy - half)
-        g->nodes[i].y = target_cy - half;
-      else if (g->nodes[i].y > target_cy + half)
-        g->nodes[i].y = target_cy + half;
     }
 
-    // Allow a mild square growth when the cloud pushes boundaries.
+    // Keep cloud inside the target square without hard clamping points
+    // (avoids "all points stuck on border" artifacts).
+    double post_minx = +INFINITY, post_maxx = -INFINITY,
+           post_miny = +INFINITY, post_maxy = -INFINITY;
+    for (int i = 0; i < g->n; i++) {
+      if (g->nodes[i].x < post_minx)
+        post_minx = g->nodes[i].x;
+      if (g->nodes[i].x > post_maxx)
+        post_maxx = g->nodes[i].x;
+      if (g->nodes[i].y < post_miny)
+        post_miny = g->nodes[i].y;
+      if (g->nodes[i].y > post_maxy)
+        post_maxy = g->nodes[i].y;
+    }
+    double post_occ = fmax(post_maxx - post_minx, post_maxy - post_miny);
+    if (post_occ > target_size * TARGET_FILL_RATIO) {
+      double scale = (target_size * TARGET_FILL_RATIO) / post_occ;
+      for (int i = 0; i < g->n; i++) {
+        g->nodes[i].x = target_cx + (g->nodes[i].x - target_cx) * scale;
+        g->nodes[i].y = target_cy + (g->nodes[i].y - target_cy) * scale;
+      }
+    }
+
+    // Allow a mild square growth when the cloud approaches boundaries.
     double occupancy_ratio = occupied / target_size;
-    if (occupancy_ratio > 0.92 && target_size < base_target_size * MAX_GLOBAL_GROWTH)
+    if (occupancy_ratio > 0.96 && target_size < base_target_size * MAX_GLOBAL_GROWTH)
       target_size = fmin(target_size * MAX_GROWTH_PER_ITER,
                          base_target_size * MAX_GLOBAL_GROWTH);
 
