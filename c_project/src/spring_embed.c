@@ -341,7 +341,6 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength,
         if (delta > maxDelta)
           maxDelta = delta;
       }
-
     }
 
     // If cloud collapses too much, very slightly reheat by slowing cooling.

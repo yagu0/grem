@@ -10,18 +10,8 @@ Python3, pip, gcc.
 ## Installation
 
 cd pkg
-
-Good practice: create a dedicated virtual environment <br>
-python -m venv .venv && source .venv/bin/activate
-
-Release:
-
-pip install . [--use-pep517]
-
-Dev mode:
-
-pip install -e . --no-build-isolation <br>
-python setup.py build\_ext --inplace #recompile wrapper
+./rebuild.sh
+nbstripout --install
 
 ## Usage
 

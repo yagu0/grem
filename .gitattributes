@@ -1,4 +1,4 @@
-*.ipynb filter=jupyter
-
+# Strip notebook outputs in the Git index on commit (working tree unchanged).
+# Requires: pip install nbstripout, then once per clone: nbstripout --install
+*.ipynb filter=nbstripout diff=ipynb
 *.zpln filter=nbstripout
-*.ipynb diff=ipynb
