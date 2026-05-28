@@ -13,7 +13,7 @@
 #define INIT_TEMP_FACTOR 5.0
 #define MAX_GROWTH_PER_ITER 1.01
 #define MAX_GLOBAL_GROWTH 1.5
-#define TARGET_FILL_RATIO 0.92
+#define MIN_FILL_RATIO 0.55
 
 QuadTree* new_quadtree(double cx, double cy, double width)
 {
@@ -203,8 +203,20 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
     for (int i=0; i < g->n; i++)
       insert_quadtree(qt, &g->nodes[i]);
 
+    // Keep target square size adaptive (no geometric forcing on points).
+    double desired_size = occupied * 1.20;
+    if (desired_size < base_target_size)
+      desired_size = base_target_size;
+    double max_size = base_target_size * MAX_GLOBAL_GROWTH;
+    if (desired_size > max_size)
+      desired_size = max_size;
+    if (desired_size > target_size)
+      target_size = fmin(target_size * MAX_GROWTH_PER_ITER, desired_size);
+    else
+      target_size = fmax(target_size / MAX_GROWTH_PER_ITER, desired_size);
+
     // Forces répulsives via Barnes-Hut
-    double k = occupied / sqrt(g->n);
+    double k = target_size / sqrt(g->n);
     for (int i = 0; i < g->n; i++)
       compute_force(&g->nodes[i], qt, THETA, k, graph_dist[i], d);
 
@@ -254,34 +266,10 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
 
     }
 
-    // Keep cloud inside the target square without hard clamping points
-    // (avoids "all points stuck on border" artifacts).
-    double post_minx = +INFINITY, post_maxx = -INFINITY,
-           post_miny = +INFINITY, post_maxy = -INFINITY;
-    for (int i = 0; i < g->n; i++) {
-      if (g->nodes[i].x < post_minx)
-        post_minx = g->nodes[i].x;
-      if (g->nodes[i].x > post_maxx)
-        post_maxx = g->nodes[i].x;
-      if (g->nodes[i].y < post_miny)
-        post_miny = g->nodes[i].y;
-      if (g->nodes[i].y > post_maxy)
-        post_maxy = g->nodes[i].y;
-    }
-    double post_occ = fmax(post_maxx - post_minx, post_maxy - post_miny);
-    if (post_occ > target_size * TARGET_FILL_RATIO) {
-      double scale = (target_size * TARGET_FILL_RATIO) / post_occ;
-      for (int i = 0; i < g->n; i++) {
-        g->nodes[i].x = target_cx + (g->nodes[i].x - target_cx) * scale;
-        g->nodes[i].y = target_cy + (g->nodes[i].y - target_cy) * scale;
-      }
-    }
-
-    // Allow a mild square growth when the cloud approaches boundaries.
+    // If cloud collapses too much, very slightly reheat by slowing cooling.
     double occupancy_ratio = occupied / target_size;
-    if (occupancy_ratio > 0.96 && target_size < base_target_size * MAX_GLOBAL_GROWTH)
-      target_size = fmin(target_size * MAX_GROWTH_PER_ITER,
-                         base_target_size * MAX_GLOBAL_GROWTH);
+    if (occupancy_ratio < MIN_FILL_RATIO)
+      t /= COOLING;
 
     t *= COOLING;
     free_quadtree(qt);
