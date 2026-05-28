@@ -13,6 +13,8 @@ typedef struct QuadTree {
 } QuadTree;
 
 // Fonction principale
-void spring_layout(Graph* g, int max_iter, int d, double grav_strength);
+// node_edge_* < 0.0 -> default values. Use 0.0 to disable node-edge term.
+void spring_layout(Graph* g, int max_iter, int d, double grav_strength,
+                   double node_edge_repulsion, double node_edge_cutoff_factor);
 
 #endif

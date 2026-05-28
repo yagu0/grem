@@ -14,6 +14,8 @@
 #define MAX_GROWTH_PER_ITER 1.01
 #define MAX_GLOBAL_GROWTH 1.5
 #define MIN_FILL_RATIO 0.55
+#define DEFAULT_NODE_EDGE_CUTOFF_FACTOR 0.55
+#define DEFAULT_NODE_EDGE_REPULSION 0.15
 
 QuadTree* new_quadtree(double cx, double cy, double width)
 {
@@ -135,10 +137,83 @@ void free_quadtree(QuadTree* qt)
   free(qt);
 }
 
-void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
+static void apply_node_edge_repulsion(Graph* g, double k,
+                                      double cutoff_factor,
+                                      double repulsion_strength)
+{
+  if (cutoff_factor <= 0.0 || repulsion_strength <= 0.0)
+    return;
+
+  double cutoff = cutoff_factor * k;
+  double cutoff2 = cutoff * cutoff;
+  double strength = repulsion_strength * k * k;
+
+  for (int u = 0; u < g->n; u++) {
+    Node* nu = &g->nodes[u];
+    for (int jj = 0; jj < nu->degree; jj++) {
+      int v = nu->neighbors[jj];
+      if (v <= u)
+        continue; // each edge once
+
+      Node* nv = &g->nodes[v];
+      double ex = nv->x - nu->x;
+      double ey = nv->y - nu->y;
+      double edge_len2 = ex * ex + ey * ey;
+      if (edge_len2 < DIST_EPS)
+        continue;
+
+      for (int p = 0; p < g->n; p++) {
+        if (p == u || p == v)
+          continue;
+
+        Node* np = &g->nodes[p];
+        double px = np->x - nu->x;
+        double py = np->y - nu->y;
+        double alpha = (px * ex + py * ey) / edge_len2;
+        if (alpha <= 0.0 || alpha >= 1.0)
+          continue; // closest point outside segment
+
+        double qx = nu->x + alpha * ex;
+        double qy = nu->y + alpha * ey;
+        double dx = np->x - qx;
+        double dy = np->y - qy;
+        double d2 = dx * dx + dy * dy;
+        if (d2 >= cutoff2)
+          continue;
+
+        double dist = sqrt(d2);
+        if (dist < DIST_EPS)
+          dist = DIST_EPS;
+
+        // Strong local repulsion when a node gets close to an edge.
+        double f = strength * (1.0 / dist - 1.0 / cutoff) / dist;
+        double fx = (dx / dist) * f;
+        double fy = (dy / dist) * f;
+
+        np->dx += fx;
+        np->dy += fy;
+
+        // Split opposite reaction on edge endpoints by barycentric weights.
+        nu->dx -= fx * (1.0 - alpha);
+        nu->dy -= fy * (1.0 - alpha);
+        nv->dx -= fx * alpha;
+        nv->dy -= fy * alpha;
+      }
+    }
+  }
+}
+
+void spring_layout(Graph* g, int max_iter, int d, double grav_strength,
+                   double node_edge_repulsion, double node_edge_cutoff_factor)
 {
   if (g == NULL || g->n <= 1)
     return;
+
+  // Negative values mean: use internal defaults.
+  if (node_edge_repulsion < 0.0)
+    node_edge_repulsion = DEFAULT_NODE_EDGE_REPULSION;
+  if (node_edge_cutoff_factor < 0.0)
+    node_edge_cutoff_factor = DEFAULT_NODE_EDGE_CUTOFF_FACTOR;
 
   // Pre-compute all graph distances
   int** graph_dist = malloc(g->n * sizeof(int*));
@@ -238,6 +313,9 @@ void spring_layout(Graph* g, int max_iter, int d, double grav_strength)
         v->dx -= dx/dist*f; v->dy -= dy/dist*f;
       }
     }
+
+    // Anti-crossing term: keep nodes away from non-incident edges.
+    apply_node_edge_repulsion(g, k, node_edge_cutoff_factor, node_edge_repulsion);
 
     // Gravité vers le centre
     for (int i = 0; i < g->n; i++) {

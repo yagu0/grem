@@ -94,9 +94,17 @@ def make_random_nary_tree(n, alpha, width, seed = -1):
     """
     return _native.make_random_nary_tree(n, alpha, width, seed)
 
-def spring_layout(g, max_iter, d = 2, grav_strength = 0.01):
+def spring_layout(
+    g,
+    max_iter,
+    d = 2,
+    grav_strength = 0.01,
+    node_edge_repulsion = -1.0,
+    node_edge_cutoff_factor = -1.0,
+):
     """
-    spring_layout(g: Graph, max_iter: int, d: int, grav_strength: float) -> None
+    spring_layout(g: Graph, max_iter: int, d: int, grav_strength: float,
+                  node_edge_repulsion: float, node_edge_cutoff_factor: float) -> None
     Rearrange the positions of nodes in the graph based on attractive and
     repulsive forces applied on nodes through edges.
 
@@ -110,12 +118,25 @@ def spring_layout(g, max_iter, d = 2, grav_strength = 0.01):
         Exponent for topological modulation. Default to 2
     grav_strength : float
         Gravity strength. Default to 0.01
+    node_edge_repulsion : float
+        Anti-crossing node-edge repulsion strength.
+        Set < 0 for internal default; set to 0 to disable.
+    node_edge_cutoff_factor : float
+        Anti-crossing interaction range as a factor of k.
+        Set < 0 for internal default.
 
     Returns
     -------
     None
     """
-    _native.spring_layout(g, max_iter, d, grav_strength)
+    _native.spring_layout(
+        g,
+        max_iter,
+        d,
+        grav_strength,
+        node_edge_repulsion,
+        node_edge_cutoff_factor,
+    )
 
 from ._native import (
     Graph,

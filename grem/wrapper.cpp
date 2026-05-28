@@ -177,8 +177,11 @@ PYBIND11_MODULE(_native, m) {
   // Spring layout
   m.def(
     "spring_layout",
-    [](std::shared_ptr<Graph> g, int max_iter, int d, double grav_strength) {
-      spring_layout(g.get(), max_iter, d, grav_strength);
+    [](std::shared_ptr<Graph> g, int max_iter, int d, double grav_strength,
+       double node_edge_repulsion, double node_edge_cutoff_factor) {
+      spring_layout(g.get(), max_iter, d, grav_strength,
+                    node_edge_repulsion, node_edge_cutoff_factor);
     },
-    py::arg("graph"), py::arg("max_iter"), py::arg("d") = 2, py::arg("grav_strength") = 0.01);
+    py::arg("graph"), py::arg("max_iter"), py::arg("d") = 2, py::arg("grav_strength") = 0.01,
+    py::arg("node_edge_repulsion") = -1.0, py::arg("node_edge_cutoff_factor") = -1.0);
 }
