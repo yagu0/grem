@@ -293,7 +293,7 @@ Graph read_graph(char* path)
     nd->dx = nd->dy = 0.0;
     nd->degree = 0;
     nd->neighbors = NULL;
-    fscanf(f, "%f %f %d", &nd->x, &nd->y, &nd->color); //==3
+    fscanf(f, "%lf %lf %d", &nd->x, &nd->y, &nd->color); //==3
   }
   // Lecture des arêtes
   for (int j = 0; j < m; j++) {
